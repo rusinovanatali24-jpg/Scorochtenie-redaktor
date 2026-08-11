@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Редактор скорочтения | Мастерская репетитора</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;800&family=Golos+Text:wght@400;500;600&family=Nunito:wght@400;700;800&family=Comfortaa:wght@400;600;700&family=Russo+One&family=Lobster&family=Pacifico&family=Caveat:wght@400;700&family=Yeseva+One&family=PT+Sans:wght@400;700&family=Rubik:wght@400;600;700&family=Underdog&family=Marmelad&family=Pangolin&family=Jura:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121e;
+    --surface2: #1a1a2e;
+    --border: #2a2a45;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --accent3: #f59e0b;
+    --text: #e8e8f0;
+    --text-muted: #7070a0;
+    --success: #10b981;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Golos Text', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .container { max-width: 980px; margin: 0 auto; padding: 32px 24px 80px; position: relative; z-index: 1; }
+  header { text-align: center; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .header-badge { display: inline-block; font-family: 'Unbounded', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--accent2); border: 1px solid rgba(6,182,212,0.3); padding: 5px 14px; border-radius: 20px; margin-bottom: 16px; background: rgba(6,182,212,0.06); }
+  h1 { font-family: 'Unbounded', sans-serif; font-size: clamp(22px, 4vw, 36px); font-weight: 800; line-height: 1.15; background: linear-gradient(135deg, #e8e8f0 30%, #7c3aed 70%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 10px; }
+  .author { font-size: 13px; color: var(--text-muted); letter-spacing: 0.5px; }
+  .author span { color: var(--accent3); font-weight: 600; }
+  .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); opacity: 0; transition: opacity 0.3s; }
+  .card:hover::before { opacity: 1; }
+  .card-full { grid-column: 1 / -1; }
+  .card-title { font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent2); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .card-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+  textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Golos Text', sans-serif; font-size: 15px; padding: 14px; resize: vertical; min-height: 200px; line-height: 1.8; transition: border-color 0.2s; outline: none; }
+  textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+  textarea::placeholder { color: var(--text-muted); }
+  .word-count { font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: right; }
+  .word-count span { color: var(--accent3); font-weight: 600; }
+  label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 7px; text-transform: uppercase; }
+  select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Golos Text', sans-serif; font-size: 14px; padding: 10px 14px; transition: border-color 0.2s; outline: none; -webkit-appearance: none; cursor: pointer; }
+  select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+  select option { background: var(--surface2); }
+  .font-preview { margin-top: 6px; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; font-size: 22px; color: var(--text); text-align: center; transition: all 0.3s; min-height: 52px; display: flex; align-items: center; justify-content: center; }
+  input[type="color"] { width: 100%; height: 42px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 4px; transition: border-color 0.2s; outline: none; }
+  input[type="color"]:focus { border-color: var(--accent); }
+  input[type="range"] { width: 100%; appearance: none; height: 4px; border-radius: 4px; background: var(--border); outline: none; cursor: pointer; margin-top: 4px; }
+  input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(124,58,237,0.6); cursor: pointer; }
+  .range-val { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .range-val .val-badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-group { margin-bottom: 14px; }
+  .toggle-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .toggle-btn { padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; user-select: none; }
+  .toggle-btn:hover { border-color: var(--accent); color: var(--text); }
+  .toggle-btn.active { background: rgba(124,58,237,0.2); border-color: var(--accent); color: #fff; box-shadow: 0 0 10px rgba(124,58,237,0.2); }
+  .border-previews { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .border-opt { flex: 1; min-width: 80px; padding: 10px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .border-opt:hover { border-color: var(--accent); color: var(--text); }
+  .border-opt.active { background: rgba(124,58,237,0.2); border-color: var(--accent); color: #fff; }
+  .border-opt .preview-line { width: 50px; height: 3px; margin: 0 auto 6px; border-radius: 2px; background: var(--text-muted); }
+  .border-opt.active .preview-line { background: var(--accent); }
+  .border-opt[data-val="dashed"] .preview-line { border-top: 3px dashed var(--text-muted); background: transparent; height: 0; }
+  .border-opt[data-val="dotted"] .preview-line { border-top: 3px dotted var(--text-muted); background: transparent; height: 0; }
+  .border-opt.active[data-val="dashed"] .preview-line { border-color: var(--accent); }
+  .border-opt.active[data-val="dotted"] .preview-line { border-color: var(--accent); }
+  .preview-area { background: #0a0a12; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; min-height: 160px; position: relative; overflow: hidden; margin-top: 4px; }
+  .preview-area::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 20px 20px; }
+  .preview-word-box { position: relative; z-index: 1; padding: 16px 32px; border: 2px solid #fff; border-radius: 8px; font-size: 28px; font-weight: 700; color: #fff; text-align: center; min-width: 160px; transition: all 0.3s; }
+  .generate-btn { width: 100%; padding: 18px; background: linear-gradient(135deg, var(--accent), #9333ea); border: none; border-radius: 10px; color: #fff; font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all 0.3s; margin-top: 8px; position: relative; overflow: hidden; }
+  .generate-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); transition: left 0.5s; }
+  .generate-btn:hover::before { left: 100%; }
+  .generate-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.5); }
+  .generate-btn:active { transform: translateY(0); }
+  .output-area { display: none; margin-top: 20px; }
+  .output-area.visible { display: block; }
+  .hint-box { background: rgba(6,182,212,0.07); border: 1px solid rgba(6,182,212,0.25); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; font-size: 13px; line-height: 1.9; color: var(--text); }
+  .hint-box strong { color: var(--accent2); }
+  .hint-box ol { margin-left: 18px; margin-top: 8px; }
+  .hint-box li { margin-bottom: 4px; }
+  .iframe-code { background: #0a0012; border: 1px solid rgba(124,58,237,0.4); border-radius: 8px; padding: 16px; font-family: 'Courier New', monospace; font-size: 12px; color: #a78bfa; word-break: break-all; line-height: 1.7; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }
+  .copy-btn { margin-top: 12px; padding: 11px 20px; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); border-radius: 8px; color: var(--accent2); font-family: 'Golos Text', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .copy-btn:hover { background: rgba(6,182,212,0.25); border-color: var(--accent2); }
+  .copy-btn.copied { background: rgba(16,185,129,0.15); border-color: var(--success); color: var(--success); }
+  footer { text-align: center; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+  footer strong { color: var(--accent3); }
+  .speed-display { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .speed-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .speed-value { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; color: var(--accent3); }
+  .speed-unit { font-size: 11px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-badge">⚡ Генератор упражнений</div>
+    <h1>Редактор Скорочтения<br>для Genially</h1>
+    <p class="author">Автор: <span>Мастерская репетитора | Ситникова Наталья</span></p>
+  </header>
+
+  <div class="editor-grid">
+
+    <div class="card card-full">
+      <div class="card-title"><div class="dot"></div>Список слов</div>
+      <textarea id="words" placeholder="Введите слова — каждое с новой строки:&#10;солнце&#10;книга&#10;горизонт&#10;скорость&#10;память&#10;успех"></textarea>
+      <div class="word-count">Слов: <span id="wordCount">0</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Стиль текста</div>
+      <div class="form-group">
+        <label>Шрифт</label>
+        <select id="fontFamily" onchange="updateFontPreview(); updatePreview()">
+          <option value="'Nunito', sans-serif">Nunito — мягкий, детский</option>
+          <option value="'Comfortaa', cursive">Comfortaa — округлый</option>
+          <option value="'Rubik', sans-serif" selected>Rubik — чёткий, читаемый</option>
+          <option value="'Marmelad', sans-serif">Мармелад — игривый</option>
+          <option value="'Underdog', cursive">Андердог — рукописный</option>
+          <option value="'Pangolin', cursive">Pangolin — рисованный</option>
+          <option value="'Caveat', cursive">Caveat — живая рука</option>
+          <option value="'Pacifico', cursive">Pacifico — декоративный</option>
+          <option value="'Lobster', cursive">Lobster — плакатный</option>
+          <option value="'Yeseva One', cursive">Yeseva One — элегантный</option>
+          <option value="'Russo One', sans-serif">Russo One — жирный</option>
+          <option value="'PT Sans', sans-serif">PT Sans — классика</option>
+          <option value="'Golos Text', sans-serif">Голос — современный</option>
+          <option value="'Jura', sans-serif">Jura — технологичный</option>
+          <option value="'Unbounded', sans-serif">Unbounded — жирный модерн</option>
+        </select>
+        <div class="font-preview" id="fontPreview">Привет, мир! Слово</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="range-val">
+            <label>Размер текста</label>
+            <span class="val-badge" id="fontSizeVal">48px</span>
+          </div>
+          <input type="range" id="fontSize" min="18" max="300" value="48" oninput="updateVal('fontSizeVal', this.value + 'px'); updatePreview()">
+        </div>
+        <div class="form-group">
+          <label>Цвет текста</label>
+          <input type="color" id="textColor" value="#ffffff" oninput="updatePreview()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Начертание</label>
+        <div class="toggle-group">
+          <div class="toggle-btn" id="boldBtn" onclick="toggleStyle('bold')"><b>Ж</b> Жирный</div>
+          <div class="toggle-btn" id="italicBtn" onclick="toggleStyle('italic')"><i>К</i> Курсив</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Стиль рамки</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Цвет рамки</label>
+          <input type="color" id="borderColor" value="#7c3aed" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+          <div class="range-val">
+            <label>Прозрачность</label>
+            <span class="val-badge" id="opacityVal">100%</span>
+          </div>
+          <input type="range" id="borderOpacity" min="10" max="100" value="100" oninput="updateVal('opacityVal', this.value + '%'); updatePreview()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="range-val">
+            <label>Толщина рамки</label>
+            <span class="val-badge" id="borderWidthVal">3px</span>
+          </div>
+          <input type="range" id="borderWidth" min="1" max="10" value="3" oninput="updateVal('borderWidthVal', this.value + 'px'); updatePreview()">
+        </div>
+        <div class="form-group">
+          <div class="range-val">
+            <label>Радиус углов</label>
+            <span class="val-badge" id="borderRadiusVal">12px</span>
+          </div>
+          <input type="range" id="borderRadius" min="0" max="50" value="12" oninput="updateVal('borderRadiusVal', this.value + 'px'); updatePreview()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Тип линии</label>
+        <div class="border-previews">
+          <div class="border-opt active" data-val="solid" onclick="selectBorder(this)"><div class="preview-line"></div>Сплошная</div>
+          <div class="border-opt" data-val="dashed" onclick="selectBorder(this)"><div class="preview-line"></div>Пунктир</div>
+          <div class="border-opt" data-val="dotted" onclick="selectBorder(this)"><div class="preview-line"></div>Точки</div>
+          <div class="border-opt" data-val="double" onclick="selectBorder(this)"><div class="preview-line" style="border-bottom:3px solid;height:6px"></div>Двойная</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="range-val">
+            <label>Ширина рамки</label>
+            <span class="val-badge" id="boxPaddingHVal">48px</span>
+          </div>
+          <input type="range" id="boxPaddingH" min="10" max="500" value="48" oninput="updateVal('boxPaddingHVal', this.value + 'px'); updatePreview()">
+        </div>
+        <div class="form-group">
+          <div class="range-val">
+            <label>Высота рамки</label>
+            <span class="val-badge" id="boxPaddingVVal">24px</span>
+          </div>
+          <input type="range" id="boxPaddingV" min="5" max="400" value="24" oninput="updateVal('boxPaddingVVal', this.value + 'px'); updatePreview()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Эффекты рамки</label>
+        <div class="toggle-group">
+          <div class="toggle-btn" id="neonBtn" onclick="toggleEffect('neon')">💫 Неон</div>
+          <div class="toggle-btn" id="threeDBtn" onclick="toggleEffect('3d')">🧊 3D</div>
+          <div class="toggle-btn" id="shadowBtn" onclick="toggleEffect('shadow')">🌑 Тень</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Фон слайда</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Цвет фона</label>
+          <input type="color" id="bgColor" value="#0a0a1a" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+          <div class="range-val">
+            <label>Прозрачность фона</label>
+            <span class="val-badge" id="bgOpacityVal">100%</span>
+          </div>
+          <input type="range" id="bgOpacity" min="0" max="100" value="100" oninput="updateVal('bgOpacityVal', this.value + '%'); updatePreview()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Цвет фона рамки</label>
+        <input type="color" id="boxBgColor" value="#1a0a3a" oninput="updatePreview()">
+      </div>
+      <div class="form-group">
+        <div class="range-val">
+          <label>Прозрачность фона рамки</label>
+          <span class="val-badge" id="boxBgOpacityVal">80%</span>
+        </div>
+        <input type="range" id="boxBgOpacity" min="0" max="100" value="80" oninput="updateVal('boxBgOpacityVal', this.value + '%'); updatePreview()">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Скорость показа</div>
+      <div class="speed-display">
+        <span class="speed-label">Показ слова:</span>
+        <span class="speed-value" id="speedDisplay">1.5</span>
+        <span class="speed-unit">сек</span>
+      </div>
+      <input type="range" id="wordSpeed" min="0.3" max="5" step="0.1" value="1.5" oninput="document.getElementById('speedDisplay').textContent = parseFloat(this.value).toFixed(1)">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:6px;margin-bottom:18px">
+        <span>⚡ Быстро (0.3с)</span>
+        <span>🐢 Медленно (5с)</span>
+      </div>
+      <div class="form-group">
+        <div class="range-val">
+          <label>Пауза между словами</label>
+          <span class="val-badge" id="pauseVal">0.3с</span>
+        </div>
+        <input type="range" id="wordPause" min="0.1" max="2" step="0.1" value="0.3" oninput="updateVal('pauseVal', parseFloat(this.value).toFixed(1) + 'с')">
+      </div>
+      <div class="form-group">
+        <label>Обратный отсчёт</label>
+        <div class="toggle-group">
+          <div class="toggle-btn active" id="countdownBtn" onclick="toggleCountdown()">⏱ 3-2-1 Старт</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Предпросмотр рамки</div>
+      <div class="preview-area" id="previewArea">
+        <div class="preview-word-box" id="previewBox">Слово</div>
+      </div>
+    </div>
+
+    <div class="card card-full">
+      <div class="card-title"><div class="dot"></div>Генерация кода для Genially</div>
+      <button class="generate-btn" onclick="generateCode()">🚀 СОЗДАТЬ КОД ДЛЯ GENIALLY</button>
+      <div class="output-area" id="outputArea">
+        <div class="iframe-code" id="iframeOutput"></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="copy-btn" id="copyBtn" onclick="copyCode()">📋 Копировать код</button>
+          <button class="copy-btn" id="downloadBtn" onclick="downloadHtml()">💾 Скачать HTML файл</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <strong>Мастерская репетитора | Ситникова Наталья</strong><br>
+    <span>Инструмент для создания упражнений по скорочтению</span>
+  </footer>
+</div>
+
+<script>
+  var styles = { bold: false, italic: false };
+  var effects = { neon: false, '3d': false, shadow: false };
+  var borderStyle = 'solid';
+  var showCountdown = true;
+  var lastStandaloneHtml = '';
+
+  document.getElementById('words').addEventListener('input', function() {
+    var lines = this.value.split('\n').filter(function(l){ return l.trim() !== ''; });
+    document.getElementById('wordCount').textContent = lines.length;
+  });
+
+  function updateVal(id, val) {
+    document.getElementById(id).textContent = val;
+  }
+
+  function updateFontPreview() {
+    var sel = document.getElementById('fontFamily');
+    var preview = document.getElementById('fontPreview');
+    preview.style.fontFamily = sel.value;
+  }
+
+  function toggleStyle(s) {
+    styles[s] = !styles[s];
+    document.getElementById(s + 'Btn').classList.toggle('active', styles[s]);
+    updatePreview();
+  }
+
+  function toggleEffect(e) {
+    effects[e] = !effects[e];
+    var btnId = e === '3d' ? 'threeDBtn' : e + 'Btn';
+    document.getElementById(btnId).classList.toggle('active', effects[e]);
+    updatePreview();
+  }
+
+  function toggleCountdown() {
+    showCountdown = !showCountdown;
+    document.getElementById('countdownBtn').classList.toggle('active', showCountdown);
+  }
+
+  function selectBorder(el) {
+    document.querySelectorAll('.border-opt').forEach(function(e){ e.classList.remove('active'); });
+    el.classList.add('active');
+    borderStyle = el.dataset.val;
+    updatePreview();
+  }
+
+  function hexToRgba(hex, opacity) {
+    var r = parseInt(hex.slice(1,3), 16);
+    var g = parseInt(hex.slice(3,5), 16);
+    var b = parseInt(hex.slice(5,7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + (opacity/100) + ')';
+  }
+
+  function updatePreview() {
+    var box = document.getElementById('previewBox');
+    var area = document.getElementById('previewArea');
+    var borderColor = document.getElementById('borderColor').value;
+    var borderOpacity = parseInt(document.getElementById('borderOpacity').value);
+    var borderWidth = document.getElementById('borderWidth').value;
+    var borderRadius = document.getElementById('borderRadius').value;
+    var fontSize = document.getElementById('fontSize').value;
+    var textColor = document.getElementById('textColor').value;
+    var boxBgColor = document.getElementById('boxBgColor').value;
+    var boxBgOpacity = parseInt(document.getElementById('boxBgOpacity').value);
+    var bgColor = document.getElementById('bgColor').value;
+    var bgOpacity = parseInt(document.getElementById('bgOpacity').value);
+    var fontFamily = document.getElementById('fontFamily').value;
+
+    var bRgba = hexToRgba(borderColor, borderOpacity);
+    var boxBgRgba = hexToRgba(boxBgColor, boxBgOpacity);
+    var boxShadow = '';
+
+    if (effects.neon) boxShadow += '0 0 10px ' + bRgba + ', 0 0 30px ' + bRgba + ', 0 0 60px ' + bRgba;
+    if (effects.shadow) boxShadow += (boxShadow ? ', ' : '') + '0 10px 40px rgba(0,0,0,0.6)';
+
+    var transform = effects['3d'] ? 'perspective(300px) rotateX(5deg) rotateY(-5deg)' : '';
+
+    area.style.background = hexToRgba(bgColor, bgOpacity);
+    var boxPaddingH = document.getElementById('boxPaddingH').value;
+    var boxPaddingV = document.getElementById('boxPaddingV').value;
+    var scaledPH = Math.round(parseInt(boxPaddingH) * 0.6);
+    var scaledPV = Math.round(parseInt(boxPaddingV) * 0.6);
+    box.style.cssText = 'border:' + borderWidth + 'px ' + borderStyle + ' ' + bRgba + ';border-radius:' + borderRadius + 'px;background:' + boxBgRgba + ';font-size:' + Math.min(parseInt(fontSize), 40) + 'px;color:' + textColor + ';font-family:' + fontFamily + ';font-weight:' + (styles.bold ? '700' : '400') + ';font-style:' + (styles.italic ? 'italic' : 'normal') + ';box-shadow:' + (boxShadow || 'none') + ';transform:' + (transform || 'none') + ';padding:' + scaledPV + 'px ' + scaledPH + 'px;text-align:center;min-width:80px;transition:all 0.3s;';
+  }
+
+  function generateCode() {
+    var wordsRaw = document.getElementById('words').value.split('\n').map(function(w){ return w.trim(); }).filter(function(w){ return w !== ''; });
+    if (wordsRaw.length === 0) { alert('Пожалуйста, введите слова!'); return; }
+
+    var borderColor = document.getElementById('borderColor').value;
+    var borderOpacity = parseInt(document.getElementById('borderOpacity').value);
+    var borderWidth = document.getElementById('borderWidth').value;
+    var borderRadius = document.getElementById('borderRadius').value;
+    var fontSize = document.getElementById('fontSize').value;
+    var textColor = document.getElementById('textColor').value;
+    var boxBgColor = document.getElementById('boxBgColor').value;
+    var boxBgOpacity = parseInt(document.getElementById('boxBgOpacity').value);
+    var bgColor = document.getElementById('bgColor').value;
+    var bgOpacity = parseInt(document.getElementById('bgOpacity').value);
+    var fontFamily = document.getElementById('fontFamily').value;
+    var wordSpeed = parseFloat(document.getElementById('wordSpeed').value);
+    var wordPause = parseFloat(document.getElementById('wordPause').value);
+    var boxPaddingH = document.getElementById('boxPaddingH').value;
+    var boxPaddingV = document.getElementById('boxPaddingV').value;
+
+    var bRgba = hexToRgba(borderColor, borderOpacity);
+    var boxBgRgba = hexToRgba(boxBgColor, boxBgOpacity);
+    var bgRgba = hexToRgba(bgColor, bgOpacity);
+
+    var fontMap = {
+      "'Nunito', sans-serif": 'Nunito:wght@700',
+      "'Comfortaa', cursive": 'Comfortaa:wght@600',
+      "'Rubik', sans-serif": 'Rubik:wght@400;700',
+      "'Marmelad', sans-serif": 'Marmelad',
+      "'Underdog', cursive": 'Underdog',
+      "'Pangolin', cursive": 'Pangolin',
+      "'Caveat', cursive": 'Caveat:wght@700',
+      "'Pacifico', cursive": 'Pacifico',
+      "'Lobster', cursive": 'Lobster',
+      "'Yeseva One', cursive": 'Yeseva+One',
+      "'Russo One', sans-serif": 'Russo+One',
+      "'PT Sans', sans-serif": 'PT+Sans:wght@400;700',
+      "'Golos Text', sans-serif": 'Golos+Text:wght@600',
+      "'Jura', sans-serif": 'Jura:wght@600',
+      "'Unbounded', sans-serif": 'Unbounded:wght@700'
+    };
+
+    var fontParam = fontMap[fontFamily] || 'Rubik:wght@400;700';
+    var fontLink = 'https://fonts.googleapis.com/css2?family=' + fontParam + '&display=swap';
+
+    var neonCSS = '';
+    if (effects.neon) neonCSS = 'box-shadow:0 0 10px ' + bRgba + ',0 0 30px ' + bRgba + ',0 0 60px ' + bRgba + ';';
+    else if (effects.shadow) neonCSS = 'box-shadow:0 10px 40px rgba(0,0,0,0.6);';
+
+    var transformCSS = effects['3d'] ? 'transform:perspective(500px) rotateX(5deg) rotateY(-5deg);' : '';
+
+    var wordsJson = JSON.stringify(wordsRaw);
+    var fwStr = styles.bold ? '700' : '400';
+    var fsStr = styles.italic ? 'italic' : 'normal';
+    var cdStr = showCountdown ? 'true' : 'false';
+
+    // Build srcdoc HTML
+    var inner = [
+      '<!DOCTYPE html><html><head><meta charset="UTF-8">',
+      '<link href="' + fontLink + '" rel="stylesheet">',
+      '<style>',
+      '*{margin:0;padding:0;box-sizing:border-box;}',
+      'html,body{width:100%;height:100%;overflow:hidden;}',
+      'body{background:' + bgRgba + ';display:flex;align-items:center;justify-content:center;}',
+      '#wb{position:absolute;border:' + borderWidth + 'px ' + borderStyle + ' ' + bRgba + ';border-radius:' + borderRadius + 'px;background:' + boxBgRgba + ';padding:' + boxPaddingV + 'px ' + boxPaddingH + 'px;' + neonCSS + transformCSS + 'text-align:center;display:none;opacity:0;transition:opacity 0.25s;}',
+      '#wt{font-family:' + fontFamily + ';font-size:' + fontSize + 'px;color:' + textColor + ';font-weight:' + fwStr + ';font-style:' + fsStr + ';line-height:1.2;white-space:nowrap;}',
+      '#cd{position:absolute;font-family:' + fontFamily + ';font-size:' + Math.round(parseInt(fontSize)*1.4) + 'px;color:' + textColor + ';font-weight:700;display:none;opacity:0;transition:opacity 0.2s;text-align:center;}',
+      '#pb{position:absolute;width:90px;height:90px;border-radius:50%;background:' + bRgba + ';border:' + borderWidth + 'px ' + borderStyle + ' ' + bRgba + ';cursor:pointer;display:flex;align-items:center;justify-content:center;' + neonCSS + '}',
+      '#pb:hover{transform:scale(1.08);}',
+      '#pb svg{width:36px;height:36px;fill:' + textColor + ';margin-left:6px;}',
+      '</style></head><body>',
+      '<div id="wb"><div id="wt"></div></div>',
+      '<div id="cd"></div>',
+      '<button id="pb" onclick="startGame()"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></button>',
+      '<script>',
+      'var words=' + wordsJson + ';',
+      'var speed=' + wordSpeed + ';',
+      'var pause=' + wordPause + ';',
+      'var doCountdown=' + cdStr + ';',
+      'var wb=document.getElementById("wb");',
+      'var wt=document.getElementById("wt");',
+      'var cd=document.getElementById("cd");',
+      'var pb=document.getElementById("pb");',
+      'function startGame(){',
+      '  pb.style.display="none";',
+      '  if(doCountdown){runCountdown(startWords);}else{startWords();}',
+      '}',
+      'function runCountdown(cb){',
+      '  var nums=["3","2","1"];',
+      '  var i=0;',
+      '  cd.style.display="block";',
+      '  function showNum(){',
+      '    if(i>=nums.length){',
+      '      cd.style.opacity="0";',
+      '      setTimeout(function(){cd.style.display="none";cb();},300);',
+      '      return;',
+      '    }',
+      '    cd.style.opacity="0";',
+      '    cd.textContent=nums[i];',
+      '    i++;',
+      '    setTimeout(function(){',
+      '      cd.style.opacity="1";',
+      '      setTimeout(function(){',
+      '        cd.style.opacity="0";',
+      '        setTimeout(showNum,300);',
+      '      },700);',
+      '    },50);',
+      '  }',
+      '  showNum();',
+      '}',
+      'function startWords(){',
+      '  var i=0;',
+      '  wb.style.display="block";',
+      '  function next(){',
+      '    if(i>=words.length){',
+      '      wb.style.opacity="0";',
+      '      setTimeout(function(){wb.style.display="none";showRestartBtn();},300);',
+      '      return;',
+      '    }',
+      '    wb.style.opacity="0";',
+      '    wt.textContent=words[i];',
+      '    i++;',
+      '    setTimeout(function(){',
+      '      wb.style.opacity="1";',
+      '      setTimeout(function(){',
+      '        wb.style.opacity="0";',
+      '        setTimeout(next,pause*1000);',
+      '      },speed*1000);',
+      '    },50);',
+      '  }',
+      '  next();',
+      '}',
+      'function showRestartBtn(){',
+      '  var btn=document.createElement("button");',
+      '  btn.style.position="absolute";',
+      '  btn.style.width="90px";',
+      '  btn.style.height="90px";',
+      '  btn.style.borderRadius="50%";',
+      '  btn.style.background="' + bRgba + '";',
+      '  btn.style.border="' + borderWidth + 'px ' + borderStyle + ' ' + bRgba + '";',
+      '  btn.style.cursor="pointer";',
+      '  btn.style.display="flex";',
+      '  btn.style.alignItems="center";',
+      '  btn.style.justifyContent="center";',
+      '  btn.style.boxShadow="' + (effects.neon ? '0 0 10px ' + bRgba + ',0 0 30px ' + bRgba : 'none') + '";',
+      '  var svg=document.createElementNS("http://www.w3.org/2000/svg","svg");',
+      '  svg.setAttribute("viewBox","0 0 24 24");',
+      '  svg.style.width="36px";svg.style.height="36px";svg.style.fill="' + textColor + '";',
+      '  var path=document.createElementNS("http://www.w3.org/2000/svg","path");',
+      '  path.setAttribute("d","M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z");',
+      '  svg.appendChild(path);',
+      '  btn.appendChild(svg);',
+      '  btn.onmouseenter=function(){btn.style.transform="scale(1.08)";};',
+      '  btn.onmouseleave=function(){btn.style.transform="scale(1)";};',
+      '  btn.onclick=function(){btn.remove();startGame();};',
+      '  document.body.appendChild(btn);',
+      '}',
+      '<\/script></body></html>'
+    ].join("");
+
+    // Escape for srcdoc: & → &amp;  " → &quot;
+    var srcdoc = inner.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+
+    var code = '<iframe srcdoc="' + srcdoc + '" width="100%" height="100%" frameborder="0" scrolling="no" sandbox="allow-scripts"></iframe>';
+
+    lastStandaloneHtml = inner;
+
+    document.getElementById('iframeOutput').textContent = code;
+    document.getElementById('outputArea').classList.add('visible');
+    document.getElementById('outputArea').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function downloadHtml() {
+    if (!lastStandaloneHtml) return;
+    var blob = new Blob([lastStandaloneHtml], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'skorochtenie.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+
+    var btn = document.getElementById('downloadBtn');
+    var original = btn.textContent;
+    btn.textContent = '✅ Скачано!';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = original;
+      btn.classList.remove('copied');
+    }, 2500);
+  }
+
+  function copyCode() {
+    var code = document.getElementById('iframeOutput').textContent;
+    navigator.clipboard.writeText(code).then(function() {
+      var btn = document.getElementById('copyBtn');
+      btn.textContent = '✅ Скопировано!';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = '📋 Копировать код';
+        btn.classList.remove('copied');
+      }, 2500);
+    });
+  }
+
+  updatePreview();
+  updateFontPreview();
+</script>
+</body>
+</html>
