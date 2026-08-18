@@ -505,7 +505,8 @@
     var boxPaddingV = document.getElementById('boxPaddingV').value;
     var scaledPH = Math.round(parseInt(boxPaddingH) * 0.6);
     var scaledPV = Math.round(parseInt(boxPaddingV) * 0.6);
-    box.style.cssText = 'border:' + borderWidth + 'px ' + borderStyle + ' ' + bRgba + ';border-radius:' + borderRadius + 'px;background:' + boxBgRgba + ';font-size:' + Math.min(parseInt(fontSize), 40) + 'px;color:' + textColor + ';font-family:' + fontFamily + ';font-weight:' + (styles.bold ? '700' : '400') + ';font-style:' + (styles.italic ? 'italic' : 'normal') + ';box-shadow:' + (boxShadow || 'none') + ';transform:' + (transform || 'none') + ';padding:' + scaledPV + 'px ' + scaledPH + 'px;text-align:center;min-width:80px;transition:all 0.3s;';
+    var previewFontSize = Math.max(12, Math.round(parseInt(fontSize) * 0.4));
+    box.style.cssText = 'border:' + borderWidth + 'px ' + borderStyle + ' ' + bRgba + ';border-radius:' + borderRadius + 'px;background:' + boxBgRgba + ';font-size:' + previewFontSize + 'px;color:' + textColor + ';font-family:' + fontFamily + ';font-weight:' + (styles.bold ? '700' : '400') + ';font-style:' + (styles.italic ? 'italic' : 'normal') + ';box-shadow:' + (boxShadow || 'none') + ';transform:' + (transform || 'none') + ';padding:' + scaledPV + 'px ' + scaledPH + 'px;text-align:center;min-width:80px;transition:all 0.3s;';
   }
 
   function generateCode() {
