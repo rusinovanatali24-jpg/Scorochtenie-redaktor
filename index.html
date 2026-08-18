@@ -102,6 +102,12 @@
     <p class="author">Автор: <span>Мастерская репетитора | Ситникова Наталья</span></p>
   </header>
 
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:24px">
+    <button type="button" class="copy-btn" id="btnSaveProject" onclick="saveProject()">💾 Сохранить проект</button>
+    <button type="button" class="copy-btn" id="btnLoadProject" onclick="document.getElementById('projectFileInput').click()">📂 Открыть проект</button>
+    <input type="file" id="projectFileInput" accept=".json" style="display:none">
+  </div>
+
   <div class="editor-grid">
 
     <div class="card card-full">
@@ -115,6 +121,7 @@
       <div class="form-group">
         <label>Шрифт</label>
         <select id="fontFamily" onchange="updateFontPreview(); updatePreview()">
+          <optgroup label="✏️ Мои шрифты" id="og-custom-font"></optgroup>
           <option value="'Nunito', sans-serif">Nunito — мягкий, детский</option>
           <option value="'Comfortaa', cursive">Comfortaa — округлый</option>
           <option value="'Rubik', sans-serif" selected>Rubik — чёткий, читаемый</option>
@@ -132,6 +139,9 @@
           <option value="'Unbounded', sans-serif">Unbounded — жирный модерн</option>
         </select>
         <div class="font-preview" id="fontPreview">Привет, мир! Слово</div>
+        <button type="button" class="copy-btn" id="btnUploadFont" style="margin-top:8px;width:100%;text-align:center" onclick="document.getElementById('fontFileInput').click()">+ Загрузить свой шрифт (.ttf/.otf/.woff/.woff2)</button>
+        <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" style="display:none">
+        <div id="customFontsList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -309,6 +319,115 @@
   var borderStyle = 'solid';
   var showCountdown = true;
   var lastStandaloneHtml = '';
+  var customFonts = {}; // { fontName: { mime, format, data } }
+
+  var FONT_EXT_INFO = {
+    'ttf':   { mime: 'font/ttf',   format: 'truetype' },
+    'otf':   { mime: 'font/otf',   format: 'opentype' },
+    'woff':  { mime: 'font/woff',  format: 'woff' },
+    'woff2': { mime: 'font/woff2', format: 'woff2' }
+  };
+
+  function fontExt(name) {
+    var m = /\.([a-z0-9]+)$/i.exec(name || '');
+    return m ? m[1].toLowerCase() : '';
+  }
+
+  function extractFontName(cssValue) {
+    var m = /^'([^']+)'/.exec(cssValue || '');
+    return m ? m[1] : null;
+  }
+
+  function injectPreviewFontFace(name, fontData) {
+    var styleId = 'preview-font-' + name.replace(/[^a-z0-9]/gi, '_');
+    var old = document.getElementById(styleId);
+    if (old) old.remove();
+    var style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = "@font-face{font-family:'" + name.replace(/'/g, '') + "';src:url('data:" + fontData.mime + ";base64," + fontData.data + "') format('" + fontData.format + "');}";
+    document.head.appendChild(style);
+  }
+
+  function uniqueFontName(base) {
+    var name = base, n = 2;
+    var sel = document.getElementById('fontFamily');
+    function taken(nm) {
+      return !!sel.querySelector('option[value="\'' + nm.replace(/"/g, '\\"') + '\', sans-serif"]');
+    }
+    while (taken(name)) { name = base + ' ' + n; n++; }
+    return name;
+  }
+
+  function addCustomFont(name, fontData) {
+    customFonts[name] = fontData;
+    injectPreviewFontFace(name, fontData);
+
+    var opt = document.createElement('option');
+    opt.value = "'" + name + "', sans-serif";
+    opt.textContent = '✏️ ' + name;
+    document.getElementById('og-custom-font').appendChild(opt);
+
+    renderCustomFontsList();
+    document.getElementById('fontFamily').value = opt.value;
+    updateFontPreview();
+    updatePreview();
+  }
+
+  function removeCustomFont(name) {
+    delete customFonts[name];
+    var sel = document.getElementById('fontFamily');
+    var opt = sel.querySelector('option[value="\'' + name.replace(/"/g, '\\"') + '\', sans-serif"]');
+    var wasSelected = opt && sel.value === opt.value;
+    if (opt) opt.remove();
+    if (wasSelected) sel.value = "'Rubik', sans-serif";
+    renderCustomFontsList();
+    updateFontPreview();
+    updatePreview();
+  }
+
+  function renderCustomFontsList() {
+    var list = document.getElementById('customFontsList');
+    list.innerHTML = '';
+    for (var name in customFonts) {
+      (function(fname) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text-muted)';
+        var lbl = document.createElement('span');
+        lbl.style.cssText = 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        lbl.textContent = '✓ ' + fname;
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.textContent = '✕';
+        del.title = 'Удалить шрифт';
+        del.style.cssText = 'background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px';
+        del.onclick = function() { removeCustomFont(fname); };
+        row.appendChild(lbl);
+        row.appendChild(del);
+        list.appendChild(row);
+      })(name);
+    }
+  }
+
+  document.getElementById('fontFileInput').addEventListener('change', function(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var ext = fontExt(file.name);
+    var info = FONT_EXT_INFO[ext];
+    if (!info) {
+      alert('Неподдерживаемый формат шрифта. Используйте .ttf, .otf, .woff или .woff2');
+      e.target.value = '';
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function() {
+      var base64 = reader.result.split(',')[1];
+      var baseName = file.name.replace(/\.[a-z0-9]+$/i, '');
+      var fontName = uniqueFontName(baseName);
+      addCustomFont(fontName, { mime: info.mime, format: info.format, data: base64 });
+      e.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  });
 
   document.getElementById('words').addEventListener('input', function() {
     var lines = this.value.split('\n').filter(function(l){ return l.trim() !== ''; });
@@ -434,6 +553,17 @@
     var fontParam = fontMap[fontFamily] || 'Rubik:wght@400;700';
     var fontLink = 'https://fonts.googleapis.com/css2?family=' + fontParam + '&display=swap';
 
+    var customName = extractFontName(fontFamily);
+    var isCustomFont = customName && customFonts[customName];
+    var fontLinkTag = '';
+    var fontFaceBlock = '';
+    if (isCustomFont) {
+      var cf = customFonts[customName];
+      fontFaceBlock = "@font-face{font-family:'" + customName + "';src:url('data:" + cf.mime + ";base64," + cf.data + "') format('" + cf.format + "');}";
+    } else {
+      fontLinkTag = '<link href="' + fontLink + '" rel="stylesheet">';
+    }
+
     var neonCSS = '';
     if (effects.neon) neonCSS = 'box-shadow:0 0 10px ' + bRgba + ',0 0 30px ' + bRgba + ',0 0 60px ' + bRgba + ';';
     else if (effects.shadow) neonCSS = 'box-shadow:0 10px 40px rgba(0,0,0,0.6);';
@@ -448,8 +578,9 @@
     // Build srcdoc HTML
     var inner = [
       '<!DOCTYPE html><html><head><meta charset="UTF-8">',
-      '<link href="' + fontLink + '" rel="stylesheet">',
+      fontLinkTag,
       '<style>',
+      fontFaceBlock,
       '*{margin:0;padding:0;box-sizing:border-box;}',
       'html,body{width:100%;height:100%;overflow:hidden;}',
       'body{background:' + bgRgba + ';display:flex;align-items:center;justify-content:center;}',
@@ -595,6 +726,147 @@
       }, 2500);
     });
   }
+
+  // ── SAVE / LOAD PROJECT (JSON) ──
+  var SETTINGS_IDS = [
+    'fontFamily', 'fontSize', 'textColor',
+    'borderColor', 'borderOpacity', 'borderWidth', 'borderRadius',
+    'boxPaddingH', 'boxPaddingV',
+    'bgColor', 'bgOpacity', 'boxBgColor', 'boxBgOpacity',
+    'wordSpeed', 'wordPause'
+  ];
+
+  function collectSettings() {
+    var out = {};
+    SETTINGS_IDS.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) out[id] = el.value;
+    });
+    return out;
+  }
+
+  function applySettings(settings) {
+    if (!settings) return;
+    SETTINGS_IDS.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && (id in settings)) el.value = settings[id];
+    });
+  }
+
+  function refreshAllUI() {
+    updateVal('fontSizeVal', document.getElementById('fontSize').value + 'px');
+    updateVal('opacityVal', document.getElementById('borderOpacity').value + '%');
+    updateVal('borderWidthVal', document.getElementById('borderWidth').value + 'px');
+    updateVal('borderRadiusVal', document.getElementById('borderRadius').value + 'px');
+    updateVal('boxPaddingHVal', document.getElementById('boxPaddingH').value + 'px');
+    updateVal('boxPaddingVVal', document.getElementById('boxPaddingV').value + 'px');
+    updateVal('bgOpacityVal', document.getElementById('bgOpacity').value + '%');
+    updateVal('boxBgOpacityVal', document.getElementById('boxBgOpacity').value + '%');
+    updateVal('pauseVal', parseFloat(document.getElementById('wordPause').value).toFixed(1) + 'с');
+    document.getElementById('speedDisplay').textContent = parseFloat(document.getElementById('wordSpeed').value).toFixed(1);
+
+    document.getElementById('boldBtn').classList.toggle('active', styles.bold);
+    document.getElementById('italicBtn').classList.toggle('active', styles.italic);
+    document.getElementById('neonBtn').classList.toggle('active', effects.neon);
+    document.getElementById('threeDBtn').classList.toggle('active', effects['3d']);
+    document.getElementById('shadowBtn').classList.toggle('active', effects.shadow);
+    document.getElementById('countdownBtn').classList.toggle('active', showCountdown);
+
+    document.querySelectorAll('.border-opt').forEach(function(e) {
+      e.classList.toggle('active', e.dataset.val === borderStyle);
+    });
+
+    var lines = document.getElementById('words').value.split('\n').filter(function(l){ return l.trim() !== ''; });
+    document.getElementById('wordCount').textContent = lines.length;
+
+    updateFontPreview();
+    updatePreview();
+  }
+
+  function saveProject() {
+    var project = {
+      type: 'skorochtenie-project',
+      version: 1,
+      words: document.getElementById('words').value,
+      settings: collectSettings(),
+      styles: styles,
+      effects: effects,
+      borderStyle: borderStyle,
+      showCountdown: showCountdown,
+      customFonts: customFonts
+    };
+    var blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'скорочтение-проект.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function clearAllCustomFonts() {
+    for (var name in customFonts) delete customFonts[name];
+    document.getElementById('og-custom-font').innerHTML = '';
+    renderCustomFontsList();
+  }
+
+  function loadProjectData(project) {
+    if (!project || typeof project !== 'object') {
+      alert('Файл проекта повреждён.');
+      return;
+    }
+
+    clearAllCustomFonts();
+    if (project.customFonts) {
+      for (var name in project.customFonts) {
+        var fd = project.customFonts[name];
+        if (fd && fd.data && fd.mime && fd.format) {
+          customFonts[name] = fd;
+          injectPreviewFontFace(name, fd);
+          var opt = document.createElement('option');
+          opt.value = "'" + name + "', sans-serif";
+          opt.textContent = '✏️ ' + name;
+          document.getElementById('og-custom-font').appendChild(opt);
+        }
+      }
+      renderCustomFontsList();
+    }
+
+    if (typeof project.words === 'string') document.getElementById('words').value = project.words;
+    applySettings(project.settings);
+
+    if (project.styles) { styles.bold = !!project.styles.bold; styles.italic = !!project.styles.italic; }
+    if (project.effects) {
+      effects.neon = !!project.effects.neon;
+      effects['3d'] = !!project.effects['3d'];
+      effects.shadow = !!project.effects.shadow;
+    }
+    borderStyle = project.borderStyle || 'solid';
+    showCountdown = project.showCountdown !== false;
+
+    refreshAllUI();
+  }
+
+  document.getElementById('projectFileInput').addEventListener('change', function(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function() {
+      var project;
+      try {
+        project = JSON.parse(reader.result);
+      } catch (err) {
+        alert('Не удалось прочитать файл проекта: повреждён или неверный формат.');
+        e.target.value = '';
+        return;
+      }
+      loadProjectData(project);
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
 
   updatePreview();
   updateFontPreview();
